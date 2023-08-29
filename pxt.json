@@ -9,7 +9,8 @@
         "README.md",
         "main.blocks",
         "main.ts",
-        "qwiicmotor.ts"
+        "qwiicmotor.ts",
+        "qwiicmotor-enum.ts"
     ],
     "targetVersions": {
         "target": "4.0.35",
@@ -18,5 +19,5 @@
     "supportedTargets": [
         "calliopemini"
     ],
-    "preferredEditor": "blocksprj"
+    "preferredEditor": "tsprj"
 }
