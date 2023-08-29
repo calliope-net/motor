@@ -35,8 +35,8 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         ENUMERATION_BIT = 0x01, BUSY_BIT = 0x02, REM_READ_BIT = 0x04, REM_WRITE_BIT = 0x08, HW_EN_BIT = 0x10
     }
 
-    //% group="i2c init"
-    //% block="i2c %pADDR init / Modul bereit"
+    //% group="Motor Driver Status"
+    //% block="i2c %pADDR Modul bereit"
     export function init(pADDR: eADDR) {
         return begin(pADDR) == 0xA9 && ready(pADDR)
     }
@@ -262,9 +262,9 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     // ========== advanced=true
 
-    // ========== group="i2c init"
+    // ========== group="Motor Driver Status"
 
-    //% group="i2c init" advanced=true
+    //% group="Motor Driver Status" advanced=true
     //% block="i2c %pADDR Modul ID=0xA9: begin" weight=6
     export function begin(pADDR: eADDR) { // Initialize the operation of the SCMD module
         /*
@@ -276,7 +276,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         return readRegister(pADDR, eRegister.ID)
     }
 
-    //% group="i2c init" advanced=true
+    //% group="Motor Driver Status" advanced=true
     //% block="i2c %pADDR Modul Status: ready" weight=4
     export function ready(pADDR: eADDR): boolean { // Returns if the driver is ready
         /*
@@ -294,7 +294,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         return (statusByte & eSTATUS_1.ENUMERATION_BIT) != 0 && statusByte != 0xFF  // wait for ready flag and not 0xFF
     }
 
-    //% group="i2c init" advanced=true
+    //% group="Motor Driver Status" advanced=true
     //% block="i2c %pADDR Modul Status: busy" weight=2
     export function busy(pADDR: eADDR): boolean {
         /*
