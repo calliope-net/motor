@@ -46,7 +46,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
         // 0x12-0x1D Local configuration -- Registers that set the drive parameters and clocking of this driver, which do not transfer to slaves when written.
 
-        MOTOR_A_INVERT = 0x12, 
+        MOTOR_A_INVERT = 0x12,
         MOTOR_B_INVERT = 0x13, /* Default 0x00
         Motor inverts for the A and B channels. These are used on all boards, master and slave, to control the directions.
         Writing 0x01 to either register causes the forward direction of that channel to be reversed
@@ -90,7 +90,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
         // 0x20-0x41 Motor drive levels -- drive 0 to 255 for -100% to 100% drive. There is one address per possible motor.
 
-        MA_DRIVE = 0x20, 
+        MA_DRIVE = 0x20,
         MB_DRIVE = 0x21, /* Default 0x80
         The output driver PWMs are directly controlled by these registers.
         Writing a value from 0 to 255 sets the duty cycle of the associated channels on any board, master or
@@ -136,10 +136,19 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
     }
 
     //% group="Motor Driver Status"
-    //% block="i2c %pADDR Modul bereit"
-    export function init(pADDR: eADDR) {
-        return begin(pADDR) == 0xA9 && ready(pADDR)
+    //% block="i2c %pADDR Modul bereit boolean"
+    export function init(pADDR: eADDR): boolean {
+        if (getStatus(pADDR, eStatus.begin)) {
+            return false
+        }
+        writeRegister(pADDR, qwiicmotor.eRegister.CONTROL_1, 1) // Reset the processor now.
+        return getStatus(pADDR, eStatus.ready)
     }
+
+    //% group="Motor Driver Status"
+    //% block="i2c %pADDR Modul bereit"
+    // blockAliasFor="qwiicmotor.init" 
+    export function _init(pADDR: eADDR): void { init(pADDR) }
 
 
     // ========== group="Motor"
@@ -168,9 +177,8 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     //% blockId=f_eMotor
     //% block="$pMotor"
-    export function f_eMotor(pMotor: eMotor): boolean {
-        return pMotor == eMotor.MOTOR_A
-    }
+    //% blockSetVariable=bMotor
+    export function f_eMotor(pMotor: eMotor): boolean { return pMotor == eMotor.MOTOR_A }
 
 
     export enum eMotor { MOTOR_A = 0x20, MOTOR_B = 0x21 }
@@ -184,14 +192,14 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
     // turnratio.shadow=turnRatioPicker
     // speed.shadow="speedPicker"
 
-
+    //% group="Motor (-100% .. 0% .. +100%)"
     //% blockId=drive_enum
-    //% block="i2c %pADDR drive %pMotor %speed %"
+    //% block="i2c %pADDR drive %pMotor %speed"
     //% pMotor.shadow="f_eMotor"
     //% speed.shadow="speedPicker"
     //% speed.defl=0
     export function drive(pADDR: eADDR, pMotor: boolean, speed: number) {
-        let driveValue= Math.ceil(Math.map(speed, -100, 100, 0, 255))
+        let driveValue = Math.ceil(Math.map(speed, -100, 100, 0, 255))
         //return (speed*1.28 )+128
         writeRegister(pADDR, eRegister.MA_DRIVE, driveValue & 0xFF)
         //return driveValue
@@ -343,7 +351,37 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         } */
     }
 
+    // ==========  group="Steuerung"
 
+    export enum eSafeTime {
+        //% block="no failsafe"
+        no_failsafe = 0,
+        //% block="10 ms"
+        ms1 = 1,
+        //% block="100 ms"
+        ms10 = 10,
+        //% block="0,5 s"
+        ms50 = 50,
+        //% block="1 s"
+        ms100 = 100,
+        //% block="1,5 s"
+        ms150 = 150,
+        //% block="2 s"
+        ms200 = 200,
+        //% block="2,5 s"
+        ms250 = 250
+    }
+
+    //% blockId=f_eSafeTime block="$pSafeTime" blockHidden=true
+    export function f_eSafeTime(pSafeTime: eSafeTime): number { return pSafeTime }
+    //% block="i2c %pADDR watchdog timeout %time" group="Steuerung"
+    //% time.shadow="f_eSafeTime"
+    export function setSafeTime(pADDR: eADDR, time: number) {
+        if (time > 0) {
+            writeRegister(pADDR, eRegister.FSAFE_CTRL, 0x01) // 0x1F
+        }
+        writeRegister(pADDR, eRegister.FSAFE_TIME, time) // 0x76 0 ... 2,55 Sekunden
+    }
 
     // ========== Diagnostics
 
@@ -389,9 +427,49 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     // ========== group="Motor Driver Status"
 
+    export enum eStatus { begin, ready, busy }
+    //% group="Motor Driver Status" advanced=true
+    //% block="i2c %pADDR Status %pStatus" weight=6
+    export function getStatus(pADDR: eADDR, pStatus: eStatus): boolean {
+        switch (pStatus) {
+            case eStatus.begin: {
+                /*
+                uint8_t begin( void );
+                Call after providing settings to start the wire library, apply the settings, and get the ID word (return
+                value should be 0xA9). Don't progress unless this returns 0xA9!
+                */
+                return readRegister(pADDR, eRegister.ID) == 0xA9
+            }
+            case eStatus.ready: {
+                /*
+                bool ready( void );
+                This function checks to see if the SCMD is done booting and is ready to receive commands. Use this
+                after .begin(), and don't progress to your main program until this returns true.
+                SCMD_STATUS_1: Read back basic program status
+                    B0: 1 = Enumeration Complete
+                    B1: 1 = Device busy
+                    B2: 1 = Remote read in progress
+                    B3: 1 = Remote write in progress
+                    B4: Read state of enable pin U2.5"
+                */
+                let statusByte = readRegister(pADDR, eRegister.STATUS_1)
+                return (statusByte & eSTATUS_1.ENUMERATION_BIT) != 0 && statusByte != 0xFF  // wait for ready flag and not 0xFF
+            }
+            case eStatus.busy: {
+                /*
+                This function checks to see if the SCMD busy with an operation. Wait for busy to be clear before
+                sending each configuration commands (not needed for motor drive levels).
+                */
+                let statusByte = readRegister(pADDR, eRegister.STATUS_1)
+                return (statusByte & (eSTATUS_1.BUSY_BIT | eSTATUS_1.REM_READ_BIT | eSTATUS_1.REM_WRITE_BIT)) != 0
+            }
+            default: return false
+        }
+    }
+
     //% group="Motor Driver Status" advanced=true
     //% block="i2c %pADDR Modul ID=0xA9: begin" weight=6
-    export function begin(pADDR: eADDR) { // Initialize the operation of the SCMD module
+    function begin(pADDR: eADDR) { // Initialize the operation of the SCMD module
         /*
         uint8_t begin( void );
         Call after providing settings to start the wire library, apply the settings, and get the ID word (return
@@ -403,7 +481,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     //% group="Motor Driver Status" advanced=true
     //% block="i2c %pADDR Modul Status: ready" weight=4
-    export function ready(pADDR: eADDR): boolean { // Returns if the driver is ready
+    function ready(pADDR: eADDR): boolean { // Returns if the driver is ready
         /*
         bool ready( void );
         This function checks to see if the SCMD is done booting and is ready to receive commands. Use this
@@ -421,7 +499,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     //% group="Motor Driver Status" advanced=true
     //% block="i2c %pADDR Modul Status: busy" weight=2
-    export function busy(pADDR: eADDR): boolean {
+    function busy(pADDR: eADDR): boolean {
         /*
         This function checks to see if the SCMD busy with an operation. Wait for busy to be clear before
         sending each configuration commands (not needed for motor drive levels).
@@ -458,11 +536,11 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
     //% block="Registernummer %pRegister" weight=2
     export function i2cRegister_enum(pRegister: eRegister): number { return pRegister }
 
-
-    //% group="Enum" advanced=true
-    //% block="Motornummer %pMotor" weight=1
-    export function motor(pMotor: eMotor): number { return pMotor }
-
+    /* 
+        //% group="Enum" advanced=true
+        //% block="Motornummer %pMotor" weight=1
+        export function motor(pMotor: eMotor): number { return pMotor }
+     */
 
     // ========== group="i2c Adressen"
 
