@@ -15,7 +15,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
 */ {
     export enum eADDR { //https://learn.sparkfun.com/tutorials/hookup-guide-for-the-qwiic-motor-driver
-        Motor = 0x5D, Motor_x58 = 0x58, Motor_x59 = 0x59, Motor_x5A = 0x5A, Motor_x5B = 0x5B, Motor_x5C = 0x5C,
+        Motor_Qwiic = 0x5D, Motor_x58 = 0x58, Motor_x59 = 0x59, Motor_x5A = 0x5A, Motor_x5B = 0x5B, Motor_x5C = 0x5C,
         Motor_x5E = 0x5E, Motor_x5F = 0x5F, Motor_x60 = 0x60, Motor_x61 = 0x61
     }
 
@@ -44,11 +44,12 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     // ========== group="Motor"
 
-    export enum eStrom { AUS, AN }
+    //export enum eStrom { AUS, AN }
 
     //% group="Motor"
     //% block="i2c %pADDR Strom %enable" weight=9
-    export function enable(pADDR: eADDR, enable: eStrom) {
+    //% enable.shadow="toggleOnOff"
+    export function enable(pADDR: eADDR, enable: boolean) {
         /*
         enable:
         Call after .begin(); to allow PWM signals into the H-bridges. If any outputs are connected as bridged,
@@ -57,11 +58,18 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         disable:
         Call to remove drive from the H-bridges. All outputs will go low.
         */
-        if (enable == eStrom.AN) {
+        if (enable) {
             writeRegister(pADDR, eRegister.DRIVER_ENABLE, 0x01)
         } else {
             writeRegister(pADDR, eRegister.DRIVER_ENABLE, 0x00)
         }
+    }
+
+
+    //% blockId=f_eMotor
+    //% block="$pMotor"
+    export function f_eMotor(pMotor: eMotor): boolean {
+        return pMotor == eMotor.MOTOR_A
     }
 
 
@@ -71,6 +79,22 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         forward = 0,
         //% block="rückwärts"
         backward = 1
+    }
+    // turnRatio.min=-128 turnRatio.max=127
+    // turnratio.shadow=turnRatioPicker
+    // speed.shadow="speedPicker"
+
+
+    //% blockId=drive_enum
+    //% block="i2c %pADDR drive %pMotor %speed %"
+    //% pMotor.shadow="f_eMotor"
+    //% speed.shadow="speedPicker"
+    //% speed.defl=0
+    export function drive(pADDR: eADDR, pMotor: boolean, speed: number) {
+        let driveValue= Math.ceil(Math.map(speed, -100, 100, 0, 255))
+        //return (speed*1.28 )+128
+        writeRegister(pADDR, eRegister.MA_DRIVE, driveValue & 0xFF)
+        //return driveValue
     }
 
     //% group="Motor"
@@ -172,7 +196,8 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
 
     //% group="Motor"
-    //% block="i2c %pADDR A+B zusammen %bridged" weight=2
+    //% block="i2c %pADDR A+B Bridge %bridged" weight=2
+    //% bridged.shadow="toggleYesNo"
     export function bridging_mode(pADDR: eADDR, bridged: boolean) {
         /*
         void bridgingMode( uint8_t driverNum, uint8_t bridged );
@@ -310,6 +335,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     //% group="i2c Register" advanced=true
     //% block="i2c %pADDR read Register %pRegister" weight=6
+    //% pRegister.shadow="eRegister_enum"
     export function readRegister(pADDR: eADDR, pRegister: number) {
         let bu = Buffer.create(1)
         bu.setUint8(0, pRegister)
@@ -319,6 +345,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     //% group="i2c Register" advanced=true
     //% block="i2c %pADDR write Register %pRegister Byte %value" weight=4
+    //% pRegister.shadow="eRegister_enum"
     export function writeRegister(pADDR: eADDR, pRegister: number, value: number) {
         let bu = Buffer.create(2)
         bu.setUint8(0, pRegister)
@@ -326,9 +353,15 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
     }
 
+    //% blockId=eRegister_enum
     //% group="i2c Register" advanced=true
     //% block="Registernummer %pRegister" weight=2
-    export function i2cRegister(pRegister: eRegister): number { return pRegister }
+    export function i2cRegister_enum(pRegister: eRegister): number { return pRegister }
+
+
+    //% group="Enum" advanced=true
+    //% block="Motornummer %pMotor" weight=1
+    export function motor(pMotor: eMotor): number { return pMotor }
 
 
     // ========== group="i2c Adressen"
