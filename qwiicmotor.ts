@@ -22,13 +22,113 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
     let i2cWriteBufferError: number = 0
 
     export enum eRegister {
-        FID = 0x00,
-        ID = 0x01,
-        MOTOR_A_INVERT = 0x12, MOTOR_B_INVERT = 0x13,
-        BRIDGE = 0x14,
-        MA_DRIVE = 0x20, MB_DRIVE = 0x21,
-        DRIVER_ENABLE = 0x70,
-        STATUS_1 = 0x77,
+        FID = 0x00, // Reports firmware version. This corresponds with the numbering within the gitub repository.
+        ID = 0x01, // Reports hard-coded ID byte of 0xA9
+        CONFIG_BITS = 0x03, // Reflects jumper position on bottom of board
+
+        // 0x04-0x11 Diagnostics and Debug -- Reports counts and time for this driver.
+
+        FSAFE_FAULTS = 0x0E, /* Default 0x00
+        The failsafe ISR hit count. This is incremented every time the watchdog is not satisfied and the ISR is allowed to run.
+        Write 0x00 to clear.
+        */
+        REG_OOR_CNT = 0x0F, /* Default 0x00
+        This counts the number of times anybody tried to write outside of the range of available registers. 
+        This should always remain at 0.
+        Write 0x00 to clear.
+        */
+        REG_RO_WRITE_CNT = 0x10, /* Default 0x00
+        This reports the number of times anybody tried to write to a locked register. This is very useful to
+        determine if the proper keys are being applied. If, after a program is run, this contains a non-zero
+        value, the program is trying to write locked registers and is being denied.
+        Write 0x00 to reset.
+        */
+
+        // 0x12-0x1D Local configuration -- Registers that set the drive parameters and clocking of this driver, which do not transfer to slaves when written.
+
+        MOTOR_A_INVERT = 0x12, 
+        MOTOR_B_INVERT = 0x13, /* Default 0x00
+        Motor inverts for the A and B channels. These are used on all boards, master and slave, to control the directions.
+        Writing 0x01 to either register causes the forward direction of that channel to be reversed
+        Writing 0x00 returns to the driver to default mode.
+        */
+        BRIDGE = 0x14, /* Default 0x00
+        This causes the channel B source mux to match channel A source in order to allow bridging.
+        Writing 0x01 to cause channel bridging. Writing 0x00 to unbridge channels.
+        Motor drive levels -- drive 0 to 255 for -100% to 100% drive. There is one address per possible motor.
+        */
+        LOCAL_MASTER_LOCK = 0x15, /* Default 0x00
+        This register allows all other registers to be writable, for unknown effect.
+        Write 0x9B to allow free register use.
+        Write other values to lock read-only registers.
+        */
+        LOCAL_USER_LOCK = 0x16, /* Default 0x5C
+        This register allows the configuration registers to be locked from inadvertent access. Anything that can
+        change modes is protected by the user lock, and is unlocked by default. When locked, writing garbage
+        data will invoke garbage motor movements but will not cause the configuration to be lost when correct
+        data is returned. Any register with "USER LOCK" as "YES" can become read-only with this register.
+        (Note: it is possible to accidentally write the user lock key to this register with garbage data.)
+        Write 0x5C to prevent writes to configuration registers
+        Write other values to allow writes.
+        */
+        FSAFE_CTRL = 0x1F, /* Default 0x11
+        Use to configure what happens when failsafe occurs.
+        B0: output behavior
+            0 – maintain last motor drive levels
+            1 -- Center output drive levels for 0 drive
+        B2-1: Restart operation( Do not use on slaves )
+            0x0 do nothing
+            0x1 reboot
+            0x2 re-enumerate
+        B3: User port behavior
+            0 – do nothing
+            1 – reinit user port
+        B4: expansion port behavior
+            0 – do nothing
+            1 – reinit expansion port
+        */
+
+        // 0x20-0x41 Motor drive levels -- drive 0 to 255 for -100% to 100% drive. There is one address per possible motor.
+
+        MA_DRIVE = 0x20, 
+        MB_DRIVE = 0x21, /* Default 0x80
+        The output driver PWMs are directly controlled by these registers.
+        Writing a value from 0 to 255 sets the duty cycle of the associated channels on any board, master or
+        slave. Note: Writing a value of 0x80 sets the duty cycle to 50%, which will appear as off at the outputs.
+        Write values up and down from there for forward and backwards drive.
+        */
+
+        // 0x50-0x55 Remote configuration -- Packed configuration bits for inversion and bridging in the master that are decoded and sent to the appropriate slaves when written.
+
+        // 0x70-0x78 System configuration -- Fail safe, status, enable, and expansion bus control registers.
+
+        DRIVER_ENABLE = 0x70, /* Default 0x00
+        This register controls the driver enable line and can effectively remove all energy from the outputs.
+        Write 0x01: Enable this driver
+        Write 0x00: Disable this driver.
+        */
+        FSAFE_TIME = 0x76, /* Default 0x00
+        This register sets the watchdog timeout time, from 10 ms to 2.55 seconds. The LSB is worth 10 ms.
+        Write 0x00: Do not use the watchdog.
+        Write other values: Set the watchdog timeout time to 10ms * value.
+        */
+        STATUS_1 = 0x77, /* Default 0x00
+        This register uses bits to show status. Currently, only b0 is used.
+        Bit 0: Enumeration complete. Reads 1 if the master state machine has reached the fully enumerated state.
+        Bit 1: Busy. The busy bit is set when certain operations are requested, and cleared when all blocking
+        operations are done. It should be observed when making changes to related operations.
+        If writing commands while the SCMD is busy, previously requested commands can be lost.
+        The bit is set as a logical OR for any changes to the following registers:
+        INV_2_9, INV_10_17, INV_18_25, INV_26_33, BRIDGE_SLV_L, BRIDGE_SLV_H,
+        DRIVER_ENABLE, MASTER_LOCK, USER_LOCK, FSAFE_TIME, REM_WRITE, REM_READ, FORCE_UPDATE
+        */
+        CONTROL_1 = 0x78, /* Default 0x00
+        This register can be used to issue low level orders to the system.
+        Bit 0: Reset the processor now. The slave chain will also be reset, and all configuration is erased.
+        Bit 1: Initiate re-enumeration of the slave chain. ...
+        */
+
+        // 0x79-0x7E Remote access -- Use to perform remote reads and writes from connected slaves.
     }
 
     export enum eSTATUS_1 { // Bits im Register STATUS_1
