@@ -403,6 +403,48 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         }
     }
 
+    function hex(v: number) {
+        let bu = Buffer.create(1)
+        bu.setUint8(0, v)
+        return bu.toHex()
+    }
+
+    //% group="Motor Konfiguration / Status" advanced=true
+    //% block="i2c %pADDR Statuszeile %nummer" weight=2
+    //% nummer.min=0 nummer.max=2
+    export function statuszeile(pADDR: eADDR, nummer: number): string {
+        switch (nummer) {
+            case 0: {
+                return readRegister(pADDR, eRegister.DRIVER_ENABLE)
+                    + " m" + hex(readRegister(pADDR, eRegister.MA_DRIVE))
+                    + hex(readRegister(pADDR, eRegister.MB_DRIVE))
+                    + " i" + readRegister(pADDR, eRegister.MOTOR_A_INVERT)
+                    + readRegister(pADDR, eRegister.MOTOR_B_INVERT)
+                    + " b" + readRegister(pADDR, eRegister.BRIDGE) // 12
+            }
+            case 1: {
+                return hex(readRegister(pADDR, eRegister.FID))          // 7b
+                    + hex(readRegister(pADDR, eRegister.ID))            // a9
+                    + hex(readRegister(pADDR, eRegister.CONFIG_BITS))   // 08
+                    + " " + readRegister(pADDR, eRegister.CONTROL_1)    // 0
+                    + " " + readRegister(pADDR, eRegister.REG_OOR_CNT)  // 0
+                    + " " + readRegister(pADDR, eRegister.REG_RO_WRITE_CNT) // 0
+                    + " " + hex(readRegister(pADDR, eRegister.STATUS_1))    // 11 Bit 1: Busy.
+            }
+            case 2: {
+                return hex(readRegister(pADDR, eRegister.LOCAL_MASTER_LOCK))    // 00
+                    + hex(readRegister(pADDR, eRegister.LOCAL_USER_LOCK))       // 5c
+                    + " " + hex(readRegister(pADDR, eRegister.FSAFE_FAULTS))    // 00
+                    + " " + hex(readRegister(pADDR, eRegister.FSAFE_CTRL))      // 19
+                    + " " + readRegister(pADDR, eRegister.FSAFE_TIME) / 100 + "s"
+
+            }
+            default: return nummer.toString()
+        }
+    }
+
+
+
 
     // ========== group="i2c Register"
 
@@ -439,7 +481,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% block="i2c Adresse von Modul %pADDR" weight=6
     export function i2cAdressen(pADDR: eADDR): number { return pADDR }
 
-     //% group="i2c Adressen" advanced=true
+    //% group="i2c Adressen" advanced=true
     //% block="Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)" weight=2
     export function i2cError() { return i2cWriteBufferError }
 
