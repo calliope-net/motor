@@ -9,8 +9,7 @@
         "README.md",
         "main.blocks",
         "main.ts",
-        "qwiicmotor.ts",
-        "qwiicmotor-enum.ts"
+        "qwiicmotor.ts"
     ],
     "targetVersions": {
         "target": "4.0.35",
