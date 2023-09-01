@@ -146,9 +146,17 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
     }
 
     //% group="Motor Driver Status"
-    //% block="i2c %pADDR Modul bereit"
+    //% block="i2c %pADDR beim Start"
     // blockAliasFor="qwiicmotor.init" 
-    export function _init(pADDR: eADDR): void { init(pADDR) }
+    export function _init(pADDR: eADDR): void {
+        init(pADDR)
+        for (let i = 0; i < 5; i += 1) {
+            if (getStatus(pADDR, eStatus.ready))
+                break
+            else
+                control.waitMicros(100000) // 0.1 Sekunde
+        }
+    }
 
 
     // ========== group="Motor"
@@ -177,32 +185,98 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
 
     //% blockId=f_eMotor
     //% block="$pMotor"
-    //% blockSetVariable=bMotor
-    export function f_eMotor(pMotor: eMotor): boolean { return pMotor == eMotor.MOTOR_A }
-
-
-    export enum eMotor { MOTOR_A = 0x20, MOTOR_B = 0x21 }
-    export enum eDirection {
-        //% block="vorwärts"
-        forward = 0,
-        //% block="rückwärts"
-        backward = 1
+    //% blockSetVariable=iMotor
+    export function f_eMotor(pMotor: eMotor): number { return pMotor }
+    export enum eMotor {
+        //% block="MOTOR A"
+        MOTOR_A = 1,
+        //% block="MOTOR B"
+        MOTOR_B = 2,
+        //% block="BRIDGE A+B"
+        MOTOR_AB = 3,
+        //% block="AUS SCHALTEN"
+        AUS = 0
     }
+
     // turnRatio.min=-128 turnRatio.max=127
     // turnratio.shadow=turnRatioPicker
     // speed.shadow="speedPicker"
 
     //% group="Motor (-100% .. 0% .. +100%)"
     //% blockId=drive_enum
-    //% block="i2c %pADDR drive %pMotor %speed"
+    //% block="i2c %pADDR starten %pMotor %speed \\%"
     //% pMotor.shadow="f_eMotor"
     //% speed.shadow="speedPicker"
     //% speed.defl=0
-    export function drive(pADDR: eADDR, pMotor: boolean, speed: number) {
-        let driveValue = Math.ceil(Math.map(speed, -100, 100, 0, 255))
-        //return (speed*1.28 )+128
+    export function drive(pADDR: eADDR, pMotor: eMotor, speed: number) {
+        // constrain: speed zwischen -100 und +100 begrenzen
+        // map: -100 -> 0 / 0 -> 127,5 / +100 -> 255
+        // ceil: aufrunden, damit 127,5 = 128 = 0x80 Motor Stillstand
+        //let driveValue = Math.ceil(Math.map(Math.constrain(speed, -100, 100), -100, 100, 0, 255))
+        switch (pMotor) {
+            case eMotor.MOTOR_A: {
+                writeRegister(pADDR, eRegister.BRIDGE, 0)
+                driveA(pADDR, speed)
+                writeRegister(pADDR, eRegister.DRIVER_ENABLE, 1)
+                break
+            }
+            case eMotor.MOTOR_B: {
+                writeRegister(pADDR, eRegister.BRIDGE, 0)
+                driveB(pADDR, speed)
+                writeRegister(pADDR, eRegister.DRIVER_ENABLE, 1)
+                break
+            }
+            case eMotor.MOTOR_AB: {
+                writeRegister(pADDR, eRegister.BRIDGE, 1)
+                driveA(pADDR, speed)
+                writeRegister(pADDR, eRegister.DRIVER_ENABLE, 1)
+                break
+            }
+            default: { // case eMotor.AUS
+                writeRegister(pADDR, eRegister.DRIVER_ENABLE, 0)
+                writeRegister(pADDR, eRegister.MA_DRIVE, 0x80)
+                writeRegister(pADDR, eRegister.MB_DRIVE, 0x80)
+                writeRegister(pADDR, eRegister.BRIDGE, 0)
+                writeRegister(pADDR, eRegister.MOTOR_A_INVERT, 0)
+                writeRegister(pADDR, eRegister.MOTOR_B_INVERT, 0)
+                break
+            }
+        }
+    }
+
+    //% group="Motor (-100% .. 0% .. +100%)"
+    //% block="i2c %pADDR fahren MOTOR A %speed \\%"
+    //% speed.shadow="speedPicker" speed.defl=0
+    export function driveA(pADDR: eADDR, speed: number) {
+        // constrain: speed zwischen -100 und +100 begrenzen
+        // map: -100 -> 0 / 0 -> 127,5 / +100 -> 255
+        // ceil: aufrunden, damit 127,5 = 128 = 0x80 Motor Stillstand
+        let driveValue = Math.ceil(Math.map(Math.constrain(speed, -100, 100), -100, 100, 0, 255))
         writeRegister(pADDR, eRegister.MA_DRIVE, driveValue & 0xFF)
-        //return driveValue
+    }
+
+    //% group="Motor (-100% .. 0% .. +100%)"
+    //% block="i2c %pADDR fahren MOTOR B %speed \\%"
+    //% speed.shadow="speedPicker" speed.defl=0
+    export function driveB(pADDR: eADDR, speed: number) {
+        // constrain: speed zwischen -100 und +100 begrenzen
+        // map: -100 -> 0 / 0 -> 127,5 / +100 -> 255
+        // ceil: aufrunden, damit 127,5 = 128 = 0x80 Motor Stillstand
+        let driveValue = Math.ceil(Math.map(Math.constrain(speed, -100, 100), -100, 100, 0, 255))
+        writeRegister(pADDR, eRegister.MB_DRIVE, driveValue & 0xFF)
+    }
+
+
+
+    //% group="Motor (-100% .. 0% .. +100%)" advanced=true
+    //% block="speedPicker $speed" speed.shadow="speedPicker"
+    export function speedPicker(speed: number) { return speed }
+
+    export enum eDirection {
+        //% block="vorwärts"
+        forward = 0,
+        //% block="rückwärts"
+        backward = 1
     }
 
     //% group="Motor"
@@ -216,7 +290,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         channel: Motor number, 0 through 33.
         direction: 1 or 0 for forward or backwards.
         level: 0 to 255 for drive strength.
-
+ 
         0x20: MA_DRIVE
         0x21: MB_DRIVE
         The output driver PWMs are directly controlled by these registers.
@@ -274,7 +348,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         //} 
         /* else {
             let regTemp = 0
-
+ 
             if (motorNum < 10) {
                 // register: SCMD_INV_2_9
                 regTemp = SCMD_INV_2_9
@@ -295,7 +369,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
             } else
                 // out of range
                 return
-
+ 
             // convert motorNum to one-hot mask
             let data = readByte(pADDR, regTemp) & (~(1 << motorNum) & 0xFF)
             writeByte(pADDR, regTemp, data | ((polarity & 0x01) << motorNum))
@@ -330,7 +404,7 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         }
         else {
             let regTemp = 0
-
+ 
             if (driverNum < 9) {
                 // register: SCMD_BRIDGE_SLV_L
                 regTemp = SCMD_BRIDGE_SLV_L
@@ -398,9 +472,9 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         writeByte(pADDR, SCMD_REM_ADDR, address)
         writeByte(pADDR, SCMD_REM_OFFSET, offset)
         writeByte(pADDR, SCMD_REM_READ, 1)
-
+ 
         while (busy(pADDR)) { }
-
+ 
         return readByte(pADDR, SCMD_REM_DATA_RD)
     } */
 
@@ -410,14 +484,14 @@ https://github.com/sparkfun/Qwiic_I2C_Py/blob/master/qwiic_i2c/circuitpy_i2c.py
         //   address -- Address of slave to read.  Can be 0x50 to 0x5F for slave 1 to 16.
         //   offset -- Address of data to write.  Can be 0x00 to 0x7F
         //   dataToWrite -- Data to write.
-
+ 
         while (busy(pADDR)) { }
-
+ 
         writeByte(pADDR, SCMD_REM_ADDR, address)
         writeByte(pADDR, SCMD_REM_OFFSET, offset)
         writeByte(pADDR, SCMD_REM_DATA_WR, dataToWrite)
         writeByte(pADDR, SCMD_REM_WRITE, 1)
-
+ 
         while (busy(pADDR)) { }
     } */
 
