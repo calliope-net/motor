@@ -251,6 +251,32 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
+    // ========== group="2 Motoren fahren mit SparkFun Qwiic Joystick"
+
+    //% group="2 Motoren fahren mit SparkFun Qwiic Joystick"
+    //% block="i2c %pADDR fahren Joystick || i2c-Adresse %qwiicjoystick"
+    //% qwiicjoystick.defl=32
+    export function driveJoystick(pADDR: eADDR, qwiicjoystick?: number) {
+        let bu = Buffer.create(1)
+        bu.setUint8(0, 3) // Joystick Register 3-7 lesen
+        i2cWriteBufferError = pins.i2cWriteBuffer(qwiicjoystick, bu, true)
+
+        bu = pins.i2cReadBuffer(qwiicjoystick, 5) // Joystick Register 3-7 lesen
+
+        if (bu.getUint8(4) == 0) { // Register 7: Current Button Position (0:gedrückt)
+            controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
+        }
+
+        let driveValue = bu.getUint8(0) // Register 3: Horizontal MSB 8 Bit
+        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
+        writeRegister(pADDR, eRegister.MA_DRIVE, driveValue)
+
+        driveValue = bu.getUint8(2) // Register 5: Vertical MSB 8 Bit
+        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
+        writeRegister(pADDR, eRegister.MB_DRIVE, driveValue)
+    }
+
+
     // ========== group="Motor (0 .. 255)"
 
     export enum eDirection {
@@ -409,12 +435,20 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         return bu.toHex()
     }
 
+    export enum eStatuszeile {
+        //% block="EN MA MB IA IB BR"
+        z0,
+        //% block="IC CONF CON CNT STAT"
+        z1,
+        //% block="M-U-LOCK watchdog"
+        z2
+    }
     //% group="Motor Konfiguration / Status" advanced=true
     //% block="i2c %pADDR Statuszeile %nummer" weight=2
     //% nummer.min=0 nummer.max=2
-    export function statuszeile(pADDR: eADDR, nummer: number): string {
+    export function statuszeile(pADDR: eADDR, nummer: eStatuszeile): string {
         switch (nummer) {
-            case 0: {
+            case eStatuszeile.z0: {
                 return readRegister(pADDR, eRegister.DRIVER_ENABLE)
                     + " m" + hex(readRegister(pADDR, eRegister.MA_DRIVE))
                     + hex(readRegister(pADDR, eRegister.MB_DRIVE))
@@ -422,7 +456,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
                     + readRegister(pADDR, eRegister.MOTOR_B_INVERT)
                     + " b" + readRegister(pADDR, eRegister.BRIDGE) // 12
             }
-            case 1: {
+            case eStatuszeile.z1: {
                 return hex(readRegister(pADDR, eRegister.FID))          // 7b
                     + hex(readRegister(pADDR, eRegister.ID))            // a9
                     + hex(readRegister(pADDR, eRegister.CONFIG_BITS))   // 08
@@ -431,7 +465,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
                     + " " + readRegister(pADDR, eRegister.REG_RO_WRITE_CNT) // 0
                     + " " + hex(readRegister(pADDR, eRegister.STATUS_1))    // 11 Bit 1: Busy.
             }
-            case 2: {
+            case eStatuszeile.z2: {
                 return hex(readRegister(pADDR, eRegister.LOCAL_MASTER_LOCK))    // 00
                     + hex(readRegister(pADDR, eRegister.LOCAL_USER_LOCK))       // 5c
                     + " " + hex(readRegister(pADDR, eRegister.FSAFE_FAULTS))    // 00
@@ -439,7 +473,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
                     + " " + readRegister(pADDR, eRegister.FSAFE_TIME) / 100 + "s"
 
             }
-            default: return nummer.toString()
+            default: return "Statuszeile"
         }
     }
 
