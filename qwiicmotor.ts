@@ -1,7 +1,7 @@
 
 //% color=#7F003F icon="\uf0d1" block="Motor Qwiic" weight=06
 namespace qwiicmotor
-/* 230901
+/* 230903
 
 https://www.sparkfun.com/products/15451
 https://github.com/sparkfun/Qwiic_SCMD_Py
@@ -176,8 +176,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     // ========== group="Motor (-100% .. 0% .. +100%)"
 
     //          blockSetVariable=iMotor
-    //% blockId=f_eMotor block="$pMotor" blockHidden=true
-    export function f_eMotor(pMotor: eMotor): number { return pMotor }
+    //% blockId=qwiicmotor_eMotor block="$pMotor" blockHidden=true
+    export function qwiicmotor_eMotor(pMotor: eMotor): number { return pMotor }
     export enum eMotor {
         //% block="MOTOR A"
         MOTOR_A = 1,
@@ -190,7 +190,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
     //% group="Motor (-100% .. 0% .. +100%)"
     //% block="i2c %pADDR starten %pMotor %speed \\%" weight=8
-    //% pMotor.shadow="f_eMotor"
+    //% pMotor.shadow="qwiicmotor_eMotor"
     //% speed.shadow="speedPicker" speed.defl=0
     export function drive(pADDR: eADDR, pMotor: eMotor, speed: number) {
         // constrain: speed zwischen -100 und +100 begrenzen
@@ -352,8 +352,8 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     // ========== group="Motor Konfiguration / Status"
 
-    //% blockId=f_eSafeTime block="$pSafeTime" blockHidden=true
-    export function f_eSafeTime(pSafeTime: eSafeTime): number { return pSafeTime }
+    //% blockId=qwiicmotor_eSafeTime block="$pSafeTime" blockHidden=true
+    export function qwiicmotor_eSafeTime(pSafeTime: eSafeTime): number { return pSafeTime }
     export enum eSafeTime {
         //% block="no failsafe"
         no_failsafe = 0,
@@ -374,7 +374,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
     //% group="Motor Konfiguration / Status" advanced=true
     //% block="i2c %pADDR watchdog timeout %time" weight=6
-    //% time.shadow="f_eSafeTime"
+    //% time.shadow="qwiicmotor_eSafeTime"
     export function setSafeTime(pADDR: eADDR, time: number) {
         if (time > 0) {
             writeRegister(pADDR, eRegister.FSAFE_CTRL, 0x01) // 0x1F
@@ -429,11 +429,11 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         }
     }
 
-    function hex(v: number) {
+    /* function hex(v: number) {
         let bu = Buffer.create(1)
         bu.setUint8(0, v)
         return bu.toHex()
-    }
+    } */
 
     export enum eStatuszeile {
         //% block="EN MA MB IA IB BR"
@@ -450,26 +450,26 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         switch (nummer) {
             case eStatuszeile.z0: {
                 return readRegister(pADDR, eRegister.DRIVER_ENABLE)
-                    + " m" + hex(readRegister(pADDR, eRegister.MA_DRIVE))
-                    + hex(readRegister(pADDR, eRegister.MB_DRIVE))
+                    + " m" + readBuffer(pADDR, eRegister.MA_DRIVE).toString()
+                    + readBuffer(pADDR, eRegister.MB_DRIVE).toHex()
                     + " i" + readRegister(pADDR, eRegister.MOTOR_A_INVERT)
                     + readRegister(pADDR, eRegister.MOTOR_B_INVERT)
                     + " b" + readRegister(pADDR, eRegister.BRIDGE) // 12
             }
             case eStatuszeile.z1: {
-                return hex(readRegister(pADDR, eRegister.FID))          // 7b
-                    + hex(readRegister(pADDR, eRegister.ID))            // a9
-                    + hex(readRegister(pADDR, eRegister.CONFIG_BITS))   // 08
+                return readBuffer(pADDR, eRegister.FID).toHex()          // 7b
+                    + readBuffer(pADDR, eRegister.ID).toHex()            // a9
+                    + readBuffer(pADDR, eRegister.CONFIG_BITS).toHex()   // 08
                     + " " + readRegister(pADDR, eRegister.CONTROL_1)    // 0
                     + " " + readRegister(pADDR, eRegister.REG_OOR_CNT)  // 0
                     + " " + readRegister(pADDR, eRegister.REG_RO_WRITE_CNT) // 0
-                    + " " + hex(readRegister(pADDR, eRegister.STATUS_1))    // 11 Bit 1: Busy.
+                    + " " + readBuffer(pADDR, eRegister.STATUS_1).toHex()    // 11 Bit 1: Busy.
             }
             case eStatuszeile.z2: {
-                return hex(readRegister(pADDR, eRegister.LOCAL_MASTER_LOCK))    // 00
-                    + hex(readRegister(pADDR, eRegister.LOCAL_USER_LOCK))       // 5c
-                    + " " + hex(readRegister(pADDR, eRegister.FSAFE_FAULTS))    // 00
-                    + " " + hex(readRegister(pADDR, eRegister.FSAFE_CTRL))      // 19
+                return readBuffer(pADDR, eRegister.LOCAL_MASTER_LOCK).toHex()    // 00
+                    + readBuffer(pADDR, eRegister.LOCAL_USER_LOCK).toHex()       // 5c
+                    + " " + readBuffer(pADDR, eRegister.FSAFE_FAULTS).toHex()    // 00
+                    + " " + readBuffer(pADDR, eRegister.FSAFE_CTRL).toHex()      // 19
                     + " " + readRegister(pADDR, eRegister.FSAFE_TIME) / 100 + "s"
 
             }
@@ -484,17 +484,26 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
 
     //% group="i2c Register" advanced=true
     //% block="i2c %pADDR read Register %pRegister" weight=6
-    //% pRegister.shadow="eRegister_enum"
+    //% pRegister.shadow="qwiicmotor_eRegister"
     export function readRegister(pADDR: eADDR, pRegister: number) {
+        return readBuffer(pADDR, pRegister).getUint8(0)
+        /* let bu = Buffer.create(1)
+        bu.setUint8(0, pRegister)
+        i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, true)
+        return pins.i2cReadBuffer(pADDR, 1).getUint8(0) */
+    }
+
+    function readBuffer(pADDR: eADDR, pRegister: number) {
         let bu = Buffer.create(1)
         bu.setUint8(0, pRegister)
         i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu, true)
-        return pins.i2cReadBuffer(pADDR, 1).getUint8(0)
+        return pins.i2cReadBuffer(pADDR, 1)
     }
+
 
     //% group="i2c Register" advanced=true
     //% block="i2c %pADDR write Register %pRegister Byte %value" weight=4
-    //% pRegister.shadow="eRegister_enum"
+    //% pRegister.shadow="qwiicmotor_eRegister"
     export function writeRegister(pADDR: eADDR, pRegister: number, value: number) {
         let bu = Buffer.create(2)
         bu.setUint8(0, pRegister)
@@ -502,10 +511,10 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         i2cWriteBufferError = pins.i2cWriteBuffer(pADDR, bu)
     }
 
-    //% blockId=eRegister_enum
+    //% blockId=qwiicmotor_eRegister
     //% group="i2c Register" advanced=true
     //% block="Registernummer %pRegister" weight=2
-    export function i2cRegister_enum(pRegister: eRegister): number { return pRegister }
+    export function qwiicmotor_eRegister(pRegister: eRegister): number { return pRegister }
 
 
 
