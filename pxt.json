@@ -9,10 +9,11 @@
         "README.md",
         "main.blocks",
         "main.ts",
-        "qwiicmotor.ts"
+        "qwiicmotor.ts",
+        "joystick.ts"
     ],
     "targetVersions": {
-        "target": "4.0.35",
+        "target": "4.0.29",
         "targetId": "calliopemini"
     },
     "supportedTargets": [
