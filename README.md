@@ -47,6 +47,13 @@ Am Calliope am linken i2c Anschluss A0 am Qwiic Kabel sind Joystick und Motor Dr
 Spätestens jetzt entsteht der Wunsch, mit zwei Calliope eine Fernsteuerung zu bauen. Es ist nicht so einfach, mehrere Zahlen gleichzeitig zu senden.
 Weil es nur zwei mal 8 Bit sind, und ein drittes Byte für den gedrückten Button auf dem Joystick, lassen sich alle in einer 32-Bit *number* (UInt32LE) unter bringen.
 Diese 32-Bit *Zahl* kann per Bluetooth mit einem Block im Ganzen gesendet werden. Und der Empfänger macht daraus wieder Bytes und schreibt sie in die Motor-i2c-Register.
+Hier ist das ganze Programm für die Fernsteuerung:
+
+Calliope Sender:
+![](kran-joystick.png)
+
+Calliope Empfänger:
+![](kran-motor.png)
 
 #### ... mehr
 
@@ -55,10 +62,6 @@ So könnten mit einem Calliope 10 Module und 20 Motoren gleichzeitig angesteuert
 
 Es sind alle (für dieses Qwiic Modul relevanten) Register des Chips mit Blöcken programmierbar. 
 Dazu muss man sich mit der Dokumentation beschäftigen, die allerdings den Chip auf einem anderen (nicht i2c-Modul) beschreibt.
-
-
-
-
 
 ### Erweiterungen
 
