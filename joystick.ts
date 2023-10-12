@@ -6,26 +6,29 @@ namespace qwiicmotor
     let n_i2cCheck: boolean = false // i2c-Check
     let n_i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
-    export function beimStart_joy(ck: boolean) {
+    export function beimStart_joy(pADDR: number,ck: boolean) {
         n_i2cCheck = ck
         n_i2cError = 0 // Reset Fehlercode
+        qwiicmotor_readJoystick(pADDR)
     }
 
 
 
     // ========== group="2 Motoren fahren mit SparkFun Qwiic Joystick"
-   
 
-    //% group="2 Motoren fahren mit SparkFun Qwiic Joystick" subcategory="Joystick"
-    //% block="i2c %pADDR fahren mit %pJoystick" weight=6
+
+    //% group="2 Motoren fahren mit SparkFun Qwiic Joystick" subcategory="Joystick" color="#BF3F7F"
+    //% block="i2c %pADDR fahren %pJoystick" weight=6
     //% pADDR.shadow="qwiicmotor_eADDR"
     //% pJoystick.shadow="qwiicmotor_readJoystick"
     export function driveJoystick(pADDR: number, pJoystick: number) {
         drive255(pADDR, pJoystick)
     }
 
+    // ========== group="Motor (0 .. 128 .. 255) (auch für Fernsteuerung)"
+
     //% blockId=qwiicmotor_readJoystick
-    //% group="Motor (0 .. 128 .. 255)" subcategory="Joystick"
+    //% group="Motor (0 .. 128 .. 255) (auch für Fernsteuerung)" subcategory="Joystick" color="#BF3F7F"
     //% block="i2c %pADDR" weight=4
     //% pADDR.shadow="qwiicmotor_eADDR_joy"
     export function qwiicmotor_readJoystick(pADDR: number): number {
@@ -44,11 +47,11 @@ namespace qwiicmotor
 
         return returnBuffer.getNumber(NumberFormat.UInt32LE, 0)
     }
-   
-   
+
+
 
     //% blockId=qwiicmotor_UInt32LE
-    //% group="Motor (0 .. 128 .. 255)" subcategory="Joystick"
+    //% group="Motor (0 .. 128 .. 255) (auch für Fernsteuerung)" subcategory="Joystick" color="#BF3F7F"
     //% block="Motor A %ma B %mb (0..128..255) starten %en" weight=2
     //% ma.min=0 ma.max=255 ma.defl=128
     //% mb.min=0 mb.max=255 mb.defl=128
@@ -75,11 +78,11 @@ namespace qwiicmotor
     // ========== group="i2c Adressen"
 
     //% blockId=qwiicmotor_eADDR_joy
-    //% group="i2c Adressen" subcategory="Joystick"
+    //% group="i2c Adressen" subcategory="Joystick" color="#BF3F7F"
     //% block="%pADDR" weight=6
     export function qwiicmotor_eADDR_joy(pADDR: eADDR_joy): number { return pADDR }
 
-    //% group="i2c Adressen" subcategory="Joystick"
+    //% group="i2c Adressen" subcategory="Joystick" color="#BF3F7F"
     //% block="i2c Fehlercode" weight=2
     export function i2cError_joy() { return n_i2cError }
 

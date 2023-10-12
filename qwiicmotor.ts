@@ -148,16 +148,17 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function init(pADDR: number, ck?: boolean): void {
         n_i2cCheck = (ck ? true : false) // optionaler boolean Parameter kann undefined sein
         n_i2cError = 0 // Reset Fehlercode
-        beimStart_joy(ck) // joystick.ts
+        beimStart_joy(eADDR_joy.Joystick_x20, ck) // joystick.ts
 
         if (getStatus(pADDR, eStatus.begin)) { // ID=0xA9
             writeRegister(pADDR, qwiicmotor.eRegister.CONTROL_1, 1) // Reset the processor now.
             for (let i = 0; i < 5; i += 1) {
+                // Wartezeit 2 s in getStatus-ready
                 if (getStatus(pADDR, eStatus.ready)) // STATUS_1
                     break
-                else { // Wartezeit 2 s in getStatus-ready
-                    //control.waitMicros(1000000)  // 0.1 Sekunde ist viel zu wenig, 1 s auch zu wenig
-                }
+                //else { 
+                //    //control.waitMicros(1000000)  // 0.1 Sekunde ist viel zu wenig, 1 s auch zu wenig
+                //}
             }
         }
     }
