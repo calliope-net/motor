@@ -148,15 +148,16 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function init(pADDR: number, ck?: boolean): void {
         n_i2cCheck = (ck ? true : false) // optionaler boolean Parameter kann undefined sein
         n_i2cError = 0 // Reset Fehlercode
-        beimStart(ck) // joystick.ts
+        beimStart_joy(ck) // joystick.ts
 
         if (getStatus(pADDR, eStatus.begin)) { // ID=0xA9
             writeRegister(pADDR, qwiicmotor.eRegister.CONTROL_1, 1) // Reset the processor now.
             for (let i = 0; i < 5; i += 1) {
                 if (getStatus(pADDR, eStatus.ready)) // STATUS_1
                     break
-                else
-                    control.waitMicros(100000) // 0.1 Sekunde
+                else { // Wartezeit 2 s in getStatus-ready
+                    //control.waitMicros(1000000)  // 0.1 Sekunde ist viel zu wenig, 1 s auch zu wenig
+                }
             }
         }
     }
@@ -181,6 +182,29 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
+    // ========== group="Motor (0 .. 128 .. 255)"
+
+    //% group="Motor (0 .. 128 .. 255)"
+    //% block="i2c %pADDR fahren %pUInt32LE" weight=6
+    //% pADDR.shadow="qwiicmotor_eADDR"
+    //% pUInt32LE.shadow="qwiicmotor_UInt32LE"
+    export function drive255(pADDR: number, pUInt32LE: number) {
+        let bu = Buffer.create(4)
+        bu.setNumber(NumberFormat.UInt32LE, 0, pUInt32LE)
+
+        if (bu.getUint8(2) == 0) { // Register 7: Current Button Position (0:gedrückt)
+            qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
+        }
+
+        let driveValue = bu.getUint8(0) // Register 3: Horizontal MSB 8 Bit
+        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
+        qwiicmotor.writeRegister(pADDR, eRegister.MA_DRIVE, driveValue)
+
+        driveValue = bu.getUint8(1) // Register 5: Vertical MSB 8 Bit
+        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
+        qwiicmotor.writeRegister(pADDR, eRegister.MB_DRIVE, driveValue)
+    }
+
 
     // ========== group="Motor (-100% .. 0% .. +100%)"
 
@@ -202,7 +226,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% pADDR.shadow="qwiicmotor_eADDR"
     //% pMotor.shadow="qwiicmotor_eMotor"
     //% speed.shadow="speedPicker" speed.defl=0
-    export function drive(pADDR: number, pMotor: eMotor, speed: number) {
+    export function drive100(pADDR: number, pMotor: eMotor, speed: number) {
         // constrain: speed zwischen -100 und +100 begrenzen
         // map: -100 -> 0 / 0 -> 127,5 / +100 -> 255
         // ceil: aufrunden, damit 127,5 = 128 = 0x80 Motor Stillstand
@@ -431,7 +455,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
                     B3: 1 = Remote write in progress
                     B4: Read state of enable pin U2.5"
                 */
-                let statusByte = readRegister(pADDR, eRegister.STATUS_1)
+                control.waitMicros(2000000) // 2 s lange Wartezeit
+                let statusByte = readBuffer2(pADDR, eRegister.STATUS_1).getUint8(0)
+                n_i2cError = 0 // Fehler ignorieren, kann passieren wenn Zeit zu kurz
                 return (statusByte & eSTATUS_1.ENUMERATION_BIT) != 0 && statusByte != 0xFF  // wait for ready flag and not 0xFF
             }
             case eStatus.busy: {
@@ -515,6 +541,16 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         return i2cReadBuffer(pADDR, 1)
     }
 
+    function readBuffer2(pADDR: eADDR, pRegister: number): Buffer {
+        let bu = Buffer.create(1)
+        bu.setUint8(0, pRegister)
+        if (pins.i2cWriteBuffer(pADDR, bu, true) == 0)
+            return pins.i2cReadBuffer(pADDR, 1)
+        else
+            return Buffer.create(1)
+    }
+
+
 
     //% group="i2c Register" advanced=true
     //% block="i2c %pADDR write Register %pRegister Byte %value" weight=4
@@ -533,7 +569,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function qwiicmotor_eRegister(pRegister: eRegister): number { return pRegister }
 
 
-
     // ========== group="i2c Adressen"
 
     //% blockId=qwiicmotor_eADDR
@@ -545,12 +580,17 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% block="i2c Fehlercode" weight=2
     export function i2cError() { return n_i2cError }
 
+    //let n_count = 0
 
     function i2cWriteBuffer(pADDR: number, buf: Buffer, repeat: boolean = false) {
+        //n_count++
         if (n_i2cError == 0) { // vorher kein Fehler
             n_i2cError = pins.i2cWriteBuffer(pADDR, buf, repeat)
-            if (n_i2cCheck && n_i2cError != 0)  // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen
+            if (n_i2cCheck && n_i2cError != 0) { // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen
                 basic.showString(Buffer.fromArray([pADDR]).toHex()) // zeige fehlerhafte i2c-Adresse als HEX
+                //basic.showNumber(n_count)
+                //basic.showNumber(n_i2cError)
+            }
         } else if (!n_i2cCheck)  // vorher Fehler, aber ignorieren (n_i2cCheck=false): i2c weiter versuchen
             n_i2cError = pins.i2cWriteBuffer(pADDR, buf, repeat)
         //else { } // n_i2cCheck=true und n_i2cError != 0: weitere i2c Aufrufe blockieren

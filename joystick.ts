@@ -6,64 +6,28 @@ namespace qwiicmotor
     let n_i2cCheck: boolean = false // i2c-Check
     let n_i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
-    export function beimStart(ck: boolean) {
+    export function beimStart_joy(ck: boolean) {
         n_i2cCheck = ck
         n_i2cError = 0 // Reset Fehlercode
     }
 
+
+
     // ========== group="2 Motoren fahren mit SparkFun Qwiic Joystick"
-/* 
+   
+
     //% group="2 Motoren fahren mit SparkFun Qwiic Joystick" subcategory="Joystick"
-    //% block="i2c %pADDR fahren Joystick || i2c-Adresse %qwiicjoystick"
-    //% pADDR.shadow="qwiicmotor_eADDR"
-    //% qwiicjoystick.shadow="qwiicmotor_joy_eADDR"
-    // qwiicjoystick.defl=32
-     function driveJoystick(pADDR: number, qwiicjoystick?: number) {
-        let bu = Buffer.create(1)
-        bu.setUint8(0, 3) // Joystick Register 3-7 lesen
-        i2cWriteBuffer(qwiicjoystick, bu, true)
-
-        bu = i2cReadBuffer(qwiicjoystick, 5) // Joystick Register 3-7 lesen
-
-        if (bu.getUint8(4) == 0) { // Register 7: Current Button Position (0:gedrückt)
-            controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
-        }
-
-        let driveValue = bu.getUint8(0) // Register 3: Horizontal MSB 8 Bit
-        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
-        writeRegister(pADDR, eRegister.MA_DRIVE, driveValue)
-
-        driveValue = bu.getUint8(2) // Register 5: Vertical MSB 8 Bit
-        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
-        writeRegister(pADDR, eRegister.MB_DRIVE, driveValue)
-    }
- */
-
-    //% group="SparkFun Qwiic Joystick " subcategory="Joystick"
-    //% block="i2c %pADDR fahre Joystick %pJoystick"
+    //% block="i2c %pADDR fahren mit %pJoystick" weight=6
     //% pADDR.shadow="qwiicmotor_eADDR"
     //% pJoystick.shadow="qwiicmotor_readJoystick"
-    export function driveArray(pADDR: number, pJoystick: number) {
-        let bu = Buffer.create(4)
-        bu.setNumber(NumberFormat.UInt32LE, 0, pJoystick)
-
-        if (bu.getUint8(2) == 0) { // Register 7: Current Button Position (0:gedrückt)
-            qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
-        }
-
-        let driveValue = bu.getUint8(0) // Register 3: Horizontal MSB 8 Bit
-        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
-        qwiicmotor.writeRegister(pADDR, eRegister.MA_DRIVE, driveValue)
-
-        driveValue = bu.getUint8(1) // Register 5: Vertical MSB 8 Bit
-        if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
-        qwiicmotor.writeRegister(pADDR, eRegister.MB_DRIVE, driveValue)
+    export function driveJoystick(pADDR: number, pJoystick: number) {
+        drive255(pADDR, pJoystick)
     }
 
     //% blockId=qwiicmotor_readJoystick
-    //% group="SparkFun Qwiic Joystick " subcategory="Joystick"
-    //% block="i2c %pADDR lese Joystick"
-    //% pADDR.shadow="qwiicmotor_joy_eADDR"
+    //% group="Motor (0 .. 128 .. 255)" subcategory="Joystick"
+    //% block="i2c %pADDR" weight=4
+    //% pADDR.shadow="qwiicmotor_eADDR_joy"
     export function qwiicmotor_readJoystick(pADDR: number): number {
         let returnBuffer = Buffer.create(4)
 
@@ -79,16 +43,41 @@ namespace qwiicmotor
         returnBuffer.setUint8(3, bu.getUint8(5)) // Register 8: STATUS 1:gedrückt
 
         return returnBuffer.getNumber(NumberFormat.UInt32LE, 0)
+    }
+   
+   
 
+    //% blockId=qwiicmotor_UInt32LE
+    //% group="Motor (0 .. 128 .. 255)" subcategory="Joystick"
+    //% block="Motor A %ma B %mb (0..128..255) starten %en" weight=2
+    //% ma.min=0 ma.max=255 ma.defl=128
+    //% mb.min=0 mb.max=255 mb.defl=128
+    //% en.shadow="toggleOnOff"
+    export function qwiicmotor_UInt32LE(ma: number, mb: number, en: boolean): number {
+        let returnBuffer = Buffer.create(4)
+        if (between(ma, 0, 255) && between(mb, 0, 255)) {
+            returnBuffer.setUint8(0, ma)
+            returnBuffer.setUint8(1, mb)
+            returnBuffer.setUint8(2, (en ? 0 : 1)) // (0: gedrückt) DRIVER_ENABLE=true
+        } else {
+            returnBuffer.setUint8(0, 128)
+            returnBuffer.setUint8(1, 128)
+            returnBuffer.setUint8(2, 1) // DRIVER_ENABLE=false
+        }
+        return returnBuffer.getNumber(NumberFormat.UInt32LE, 0)
     }
 
 
+    export function between(i0: number, i1: number, i2: number): boolean {
+        return (i0 >= i1 && i0 <= i2)
+    }
+
     // ========== group="i2c Adressen"
 
-    //% blockId=qwiicmotor_joy_eADDR
+    //% blockId=qwiicmotor_eADDR_joy
     //% group="i2c Adressen" subcategory="Joystick"
     //% block="%pADDR" weight=6
-    export function qwiicmotor_joy_eADDR(pADDR: eADDR_joy): number { return pADDR }
+    export function qwiicmotor_eADDR_joy(pADDR: eADDR_joy): number { return pADDR }
 
     //% group="i2c Adressen" subcategory="Joystick"
     //% block="i2c Fehlercode" weight=2
