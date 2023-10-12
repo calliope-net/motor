@@ -33,8 +33,18 @@ Die Umrechnung erfolgt mit dem Block *verteile* (Math.map) aus Mathematik.
 Aus der [Arduino Library](https://github.com/sparkfun/SparkFun_Serial_Controlled_Motor_Driver_Arduino_Library) sind die
 Parameter (0 .. 255) und ein zusätzlicher Parameter für die Richtung übernommen.
 
+#### ... Joystick
 
-... mehr
+Interessant ist die Steuerung von zwei Motoren mit dem **SparkFun Qwiic Joystick**. Alles, was Qwiic heißt, ist i2c und 3,3V Logik.
+Der Joystick liefert in Mittelstellung jeweils den Wert 128 (0x80) - genau wie der Motor Driver es braucht.
+So kann direkt der Wert (0 - 255) jeweils für horizontal und vertikal an das Register für Motor A und Motor B übertragen werden - in einer Zeitschleife von z.B. 500 ms.
+
+Zusätzlich wird durch Drücken auf den Joystick *DRIVER_ENABLE* die ganze Elektronik (Pulsweitenmodulation PWM) erst eingeschaltet.
+Am Calliope am linken i2c Anschluss A0 am Qwiic Kabel sind Joystick und Motor Driver hintereinander gesteckt.
+
+
+
+#### ... mehr
 
 Auf dem Qwiic-Modul können durch Lötbrücken 10 verschiedene i2c-Adressen eingestellt werden.
 So könnten mit einem Calliope 10 Module und 20 Motoren gleichzeitig angesteuert werden.
