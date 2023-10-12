@@ -52,10 +52,12 @@ Diese 32-Bit *Zahl* kann per Bluetooth mit einem Block im Ganzen gesendet werden
 Hier ist das ganze Programm für die Fernsteuerung:
 
 Calliope Sender:
-![](kran-joystick.png)
+
+![](kran-joystick-640.png)
 
 Calliope Empfänger:
-![](kran-motor.png)
+
+![](kran-motor-640.png)
 
 #### ... mehr
 
