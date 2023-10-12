@@ -39,7 +39,7 @@ Parameter (0 .. 255) und ein zusätzlicher Parameter für die Richtung übernomm
 
 #### ... Joystick
 
-Interessant ist die Steuerung von zwei Motoren mit dem **SparkFun Qwiic Joystick**. Alles, was Qwiic heißt, ist i2c und 3,3V Logik.
+Interessant ist die Steuerung von zwei Motoren mit dem [**SparkFun Qwiic Joystick**](https://calliope-net.github.io/joystick/). Alles, was Qwiic heißt, ist i2c und 3,3V Logik.
 Der Joystick liefert in Mittelstellung jeweils den Wert 128 (0x80) - genau wie der Motor Driver es braucht.
 So kann direkt der Wert (0 - 255) jeweils für horizontal und vertikal an das Register für Motor A und Motor B übertragen werden - in einer Zeitschleife von z.B. 500 ms.
 
