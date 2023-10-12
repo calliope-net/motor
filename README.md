@@ -16,9 +16,11 @@ Dieses Repository kann als **Erweiterung** in MakeCode hinzugefügt werden.
 * **calliope-net/motor**
 * füge sie auf der Webseite oben ein (Strg-V) und klicke auf die Lupe (oder ENTER)
 * wenn die Erweiterung gefunden wurde, klicke auf das Rechteck
-* jetzt hat die Liste den neuen Eintrag **Motor Qwiic** bekommen
+* jetzt hat die Liste den neuen Eintrag **Motor** bekommen
 
 ![](blocks.png)
+
+![](blocksj.png)
 
 ### Beschreibung der Erweiterung für 'SparkFun Qwiic Motor Driver'
 
