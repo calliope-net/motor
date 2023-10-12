@@ -43,6 +43,8 @@ Interessant ist die Steuerung von zwei Motoren mit dem [**SparkFun Qwiic Joystic
 Der Joystick liefert in Mittelstellung jeweils den Wert 128 (0x80) - genau wie der Motor Driver es braucht.
 So kann direkt der Wert (0 - 255) jeweils für horizontal und vertikal an das Register für Motor A und Motor B übertragen werden - in einer Zeitschleife von z.B. 500 ms.
 
+![](driveJoystick.png)
+
 Zusätzlich wird durch Drücken auf den Joystick *DRIVER_ENABLE* die ganze Elektronik (Pulsweitenmodulation PWM) erst eingeschaltet.
 Am Calliope am linken i2c Anschluss A0 am Qwiic Kabel sind Joystick und Motor Driver hintereinander gesteckt.
 
