@@ -24,7 +24,9 @@ Dieses Repository kann als **Erweiterung** in MakeCode hinzugefügt werden.
 
 Mit dem Modul können zwei Motoren (3-11 V; 1,2 A) gleichzeitig vorwärts und rückwärts gesteuert werden. Dabei steht mehr Strom zur Verfügung,
 als am Motor-Anschluss auf dem Calliope. Die Drehzahl kann in 127 Schritten rückwärts und 127 Schritten vorwärts eingestellt werden. 
-128 (0x80) ist Stillstand. 0 ist max. rückwärts und 255 ist max vorwärts. Mit (0 .. 128 .. 255) wird der Motor-Chip direkt angesteuert.
+128 (0x80) ist Stillstand. 0 ist max. rückwärts und 255 ist max. vorwärts. 
+
+Mit (0 .. 128 .. 255) wird der Motor-Chip direkt angesteuert.
 
 Zur Kompatibilität mit dem Calliope Motor Block, wird auch der Bereich (-100% .. 0% .. +100%) unterstützt. 
 Hier kann der grafische Tachometer *speedPicker* zur Einstellung der Werte benutzt werden.
@@ -42,7 +44,9 @@ So kann direkt der Wert (0 - 255) jeweils für horizontal und vertikal an das Re
 Zusätzlich wird durch Drücken auf den Joystick *DRIVER_ENABLE* die ganze Elektronik (Pulsweitenmodulation PWM) erst eingeschaltet.
 Am Calliope am linken i2c Anschluss A0 am Qwiic Kabel sind Joystick und Motor Driver hintereinander gesteckt.
 
-
+Spätestens jetzt entsteht der Wunsch, mit zwei Calliope eine Fernsteuerung zu bauen. Es ist nicht so einfach, mehrere Zahlen gleichzeitig zu senden.
+Weil es nur zwei mal 8 Bit sind, und ein drittes Byte für den gedrückten Button auf dem Joystick, lassen sich alle in einer 32-Bit *number* (UInt32LE) unter bringen.
+Diese 32-Bit *Zahl* kann per Bluetooth mit einem Block im Ganzen gesendet werden. Und der Empfänger macht daraus wieder Bytes und schreibt sie in die Motor-i2c-Register.
 
 #### ... mehr
 
