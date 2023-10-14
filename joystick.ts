@@ -6,25 +6,24 @@ namespace qwiicmotor
     let n_i2cCheck: boolean = false // i2c-Check
     let n_i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
-    /* nur zur Information
-        enum eRegister_joy {     // Register codes for the Joystick
-            ID = 0x00,              // Default I2C Slave Address from EEPROM
-            VERSION1 = 0x01,        // Firmware Version (MSB First)
-            VERSION2 = 0x02,
-            X_MSB = 0x03,           // Current Horizontal Position (MSB First)
-            //% block="X_LSB 2Bit: xx000000"
-            X_LSB = 0x04,
-            Y_MSB = 0x05,           // Current Vertical Position (MSB First)
-            //% block="Y_LSB 2Bit: xx000000"
-            Y_LSB = 0x06,
-            //% block="BUTTON 0:gedrückt"
-            BUTTON = 0x07,          // Current Button Position
-            //% block="STATUS 1:gedrückt"
-            STATUS = 0x08,          // Button Status: Indicates if button was pressed since last read of button state. Clears after read.
-            I2C_LOCK = 0x09,        // Configuration or "Locking" Register - Prevents random I2C address changes during I2C scans and register dumps. Must be set to 0x13 before an address change gets saved to the EEPROM.
-            CHANGE_ADDREESS = 0x0A  // Current/Set I2C Slave Address (Write). Stored in EEPROM.
-        }
-     */
+    export enum eRegister_joy {     // Register codes for the Joystick
+        ID = 0x00,              // Default I2C Slave Address from EEPROM
+        VERSION1 = 0x01,        // Firmware Version (MSB First)
+        VERSION2 = 0x02,
+        X_MSB = 0x03,           // Current Horizontal Position (MSB First)
+        //% block="X_LSB 2Bit: xx000000"
+        X_LSB = 0x04,
+        Y_MSB = 0x05,           // Current Vertical Position (MSB First)
+        //% block="Y_LSB 2Bit: xx000000"
+        Y_LSB = 0x06,
+        //% block="BUTTON 0:gedrückt"
+        BUTTON = 0x07,          // Current Button Position
+        //% block="STATUS 1:gedrückt"
+        STATUS = 0x08,          // Button Status: Indicates if button was pressed since last read of button state. Clears after read.
+        I2C_LOCK = 0x09,        // Configuration or "Locking" Register - Prevents random I2C address changes during I2C scans and register dumps. Must be set to 0x13 before an address change gets saved to the EEPROM.
+        CHANGE_ADDREESS = 0x0A  // Current/Set I2C Slave Address (Write). Stored in EEPROM.
+    }
+
 
     //% group="beim Start"
     //% block="i2c %pADDR beim Start || i2c-Check %ck" subcategory="Joystick" color="#BF3F7F"
@@ -34,7 +33,7 @@ namespace qwiicmotor
         n_i2cCheck = ck
         n_i2cError = 0 // Reset Fehlercode
 
-        i2cWriteBuffer(pADDR, Buffer.fromArray([8, 0])) // Status 'Button war gedrückt' löschen
+        i2cWriteBuffer(pADDR, Buffer.fromArray([eRegister_joy.STATUS, 0])) // (8) Status 'Button war gedrückt' löschen
         // sendet 0 im Byte(3) und schaltet Motor aus
     }
 
@@ -73,6 +72,17 @@ namespace qwiicmotor
 
         return bu_ret.getNumber(NumberFormat.UInt32LE, 0)
     }
+
+    // ========== group="i2c Register"
+
+    //% group="i2c Register" subcategory="Joystick" color="#BF3F7F"
+    //% block="i2c %pADDR Register %pRegister 8 Bit lesen" weight=2
+    //% pADDR.shadow="qwiicmotor_eADDR_joy"
+    export function readRegister_joy(pADDR: number, pRegister: eRegister_joy) {
+        i2cWriteBuffer(pADDR, Buffer.fromArray([pRegister]), true)
+        return i2cReadBuffer(pADDR, 1).getUint8(0)
+    }
+
 
 
 
