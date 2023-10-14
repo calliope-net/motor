@@ -22,8 +22,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     let n_i2cCheck: boolean = false // i2c-Check
     let n_i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
 
-    //let i2cWriteBufferError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
-
     export enum eRegister {
         FID = 0x00, // Reports firmware version. This corresponds with the numbering within the gitub repository.
         ID = 0x01, // Reports hard-coded ID byte of 0xA9
@@ -190,21 +188,24 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     //% pADDR.shadow="qwiicmotor_eADDR"
     //% pUInt32LE.shadow="qwiicmotor_UInt32LE"
     export function drive255(pADDR: number, pUInt32LE: number) {
-        let bu = Buffer.create(4)
-        bu.setNumber(NumberFormat.UInt32LE, 0, pUInt32LE)
+        // pUInt32LE enthält 4 Byte und kann vom Joystick kommen oder von qwiicmotor_UInt32LE
+        // (0) Motor  (1) B (2) Current Button Position (0:gedrückt) (3) Button STATUS (1:war gedrückt)
+        let bu_joy = Buffer.create(4)
+        bu_joy.setNumber(NumberFormat.UInt32LE, 0, pUInt32LE)
 
         // Register 8: STATUS 1:war gedrückt
-        qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, (bu.getUint8(3) == 0 ? false : true))
+        qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, (bu_joy.getUint8(3) == 0 ? false : true))
 
+        // bu.getUint8(2) wird nicht mehr ausgewertet; Current Button Position=0 würde Motor einschalten
         //if (bu.getUint8(2) == 0) { // Register 7: Current Button Position (0:gedrückt)
         //    qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
         //}
 
-        let driveValue = bu.getUint8(0) // Register 3: Horizontal MSB 8 Bit
+        let driveValue = bu_joy.getUint8(0) // Register 3: Horizontal MSB 8 Bit
         if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
         qwiicmotor.writeRegister(pADDR, eRegister.MA_DRIVE, driveValue)
 
-        driveValue = bu.getUint8(1) // Register 5: Vertical MSB 8 Bit
+        driveValue = bu_joy.getUint8(1) // Register 5: Vertical MSB 8 Bit
         if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
         qwiicmotor.writeRegister(pADDR, eRegister.MB_DRIVE, driveValue)
     }
@@ -290,33 +291,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         writeRegister(pADDR, eRegister.MB_DRIVE, driveValue & 0xFF)
     }
 
-
-    // ========== group="2 Motoren fahren mit SparkFun Qwiic Joystick"
-    /* 
-        //% group="2 Motoren fahren mit SparkFun Qwiic Joystick" subcategory="Joystick"
-        // block="i2c %pADDR fahren Joystick || i2c-Adresse %qwiicjoystick"
-        //% pADDR.shadow="qwiicmotor_eADDR"
-        //% qwiicjoystick.defl=32
-        export function driveJoystick(pADDR: number, qwiicjoystick?: number) {
-            let bu = Buffer.create(1)
-            bu.setUint8(0, 3) // Joystick Register 3-7 lesen
-            i2cWriteBuffer(qwiicjoystick, bu, true)
-    
-            bu = i2cReadBuffer(qwiicjoystick, 5) // Joystick Register 3-7 lesen
-    
-            if (bu.getUint8(4) == 0) { // Register 7: Current Button Position (0:gedrückt)
-                controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
-            }
-    
-            let driveValue = bu.getUint8(0) // Register 3: Horizontal MSB 8 Bit
-            if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
-            writeRegister(pADDR, eRegister.MA_DRIVE, driveValue)
-    
-            driveValue = bu.getUint8(2) // Register 5: Vertical MSB 8 Bit
-            if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
-            writeRegister(pADDR, eRegister.MB_DRIVE, driveValue)
-        }
-     */
 
     // ========== group="Motor (0 .. 255)"
 
@@ -434,9 +408,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function getStatus(pADDR: number, pStatus: eStatus): boolean {
         switch (pStatus) {
             case eStatus.i2c_connected: {
-                let bu = Buffer.create(1)
-                bu.setUint8(0, 0)
-                i2cWriteBuffer(pADDR, bu)
+                //let bu = Buffer.create(1)
+                //bu.setUint8(0, 0)
+                i2cWriteBuffer(pADDR, Buffer.fromArray([0]))
                 return i2cError() == 0
             }
             case eStatus.begin: {
@@ -476,11 +450,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         }
     }
 
-    /* function hex(v: number) {
-        let bu = Buffer.create(1)
-        bu.setUint8(0, v)
-        return bu.toHex()
-    } */
 
     export enum eStatuszeile {
         //% block="EN MA MB IA IB BR"
@@ -539,16 +508,17 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
     function readBuffer(pADDR: eADDR, pRegister: number): Buffer {
-        let bu = Buffer.create(1)
-        bu.setUint8(0, pRegister)
-        i2cWriteBuffer(pADDR, bu, true)
+        //let bu = Buffer.create(1)
+        //bu.setUint8(0, pRegister)
+        i2cWriteBuffer(pADDR, Buffer.fromArray([pRegister]), true)
         return i2cReadBuffer(pADDR, 1)
     }
 
+    // bei der Statusabfrage Ready auftretende i2c Fehler sollen ignoriert werden
     function readBuffer2(pADDR: eADDR, pRegister: number): Buffer {
-        let bu = Buffer.create(1)
-        bu.setUint8(0, pRegister)
-        if (pins.i2cWriteBuffer(pADDR, bu, true) == 0)
+        //let bu = Buffer.create(1)
+        //bu.setUint8(0, pRegister)
+        if (pins.i2cWriteBuffer(pADDR, Buffer.fromArray([pRegister]), true) == 0)
             return pins.i2cReadBuffer(pADDR, 1)
         else
             return Buffer.create(1)
@@ -592,8 +562,6 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
             n_i2cError = pins.i2cWriteBuffer(pADDR, buf, repeat)
             if (n_i2cCheck && n_i2cError != 0) { // vorher kein Fehler, wenn (n_i2cCheck=true): beim 1. Fehler anzeigen
                 basic.showString(Buffer.fromArray([pADDR]).toHex()) // zeige fehlerhafte i2c-Adresse als HEX
-                //basic.showNumber(n_count)
-                //basic.showNumber(n_i2cError)
             }
         } else if (!n_i2cCheck)  // vorher Fehler, aber ignorieren (n_i2cCheck=false): i2c weiter versuchen
             n_i2cError = pins.i2cWriteBuffer(pADDR, buf, repeat)
