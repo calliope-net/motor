@@ -181,9 +181,9 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
 
 
-    // ========== group="Motor (0 .. 128 .. 255)"
+    // ========== group="Motor (0 .. 128 .. 255) 4 Byte in UInt32LE (für Fernsteuerung)"
 
-    //% group="Motor (0 .. 128 .. 255)"
+    //% group="Motor (0 .. 128 .. 255) 4 Byte in UInt32LE (für Fernsteuerung)"
     //% block="i2c %pADDR fahren %pUInt32LE" weight=6
     //% pADDR.shadow="qwiicmotor_eADDR"
     //% pUInt32LE.shadow="qwiicmotor_UInt32LE"

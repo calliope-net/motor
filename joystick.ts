@@ -50,11 +50,11 @@ namespace qwiicmotor
         drive255(pADDR, pJoystick) // in qwiicmotor.ts
     }
 
-    // ========== group="Motor (0 .. 128 .. 255) (auch für Fernsteuerung)"
+    // ========== group="Motor (0 .. 128 .. 255) 4 Byte in UInt32LE (für Fernsteuerung)"
 
     //% blockId=qwiicmotor_readJoystick
-    //% group="Motor (0 .. 128 .. 255) (auch für Fernsteuerung)" subcategory="Joystick" color="#BF3F7F"
-    //% block="i2c %pADDR" weight=4
+    //% group="Motor (0 .. 128 .. 255) 4 Byte in UInt32LE (für Fernsteuerung)" subcategory="Joystick" color="#BF3F7F"
+    //% block="i2c %pADDR in UInt32LE lesen" weight=4
     //% pADDR.shadow="qwiicmotor_eADDR_joy"
     export function qwiicmotor_readJoystick(pADDR: number): number {
         let bu_ret = Buffer.create(4)
@@ -87,7 +87,7 @@ namespace qwiicmotor
 
 
     //% blockId=qwiicmotor_UInt32LE
-    //% group="Motor (0 .. 128 .. 255) (auch für Fernsteuerung)" subcategory="Joystick" color="#BF3F7F"
+    //% group="Motor (0 .. 128 .. 255) 4 Byte in UInt32LE (für Fernsteuerung)" subcategory="Joystick" color="#BF3F7F"
     //% block="Motor A %ma B %mb (0..128..255) starten %en" weight=2
     //% ma.min=0 ma.max=255 ma.defl=128
     //% mb.min=0 mb.max=255 mb.defl=128
