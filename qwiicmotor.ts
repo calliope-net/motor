@@ -148,7 +148,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     export function init(pADDR: number, ck?: boolean): void {
         n_i2cCheck = (ck ? true : false) // optionaler boolean Parameter kann undefined sein
         n_i2cError = 0 // Reset Fehlercode
-        beimStart_joy(eADDR_joy.Joystick_x20, ck) // joystick.ts
+        //beimStart_joy(eADDR_joy.Joystick_x20, ck) // joystick.ts
 
         if (getStatus(pADDR, eStatus.begin)) { // ID=0xA9
             writeRegister(pADDR, qwiicmotor.eRegister.CONTROL_1, 1) // Reset the processor now.
@@ -193,9 +193,12 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         let bu = Buffer.create(4)
         bu.setNumber(NumberFormat.UInt32LE, 0, pUInt32LE)
 
-        if (bu.getUint8(2) == 0) { // Register 7: Current Button Position (0:gedrückt)
-            qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
-        }
+        // Register 8: STATUS 1:war gedrückt
+        qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, (bu.getUint8(3) == 0 ? false : true))
+
+        //if (bu.getUint8(2) == 0) { // Register 7: Current Button Position (0:gedrückt)
+        //    qwiicmotor.controlRegister(pADDR, eControl.DRIVER_ENABLE, true)
+        //}
 
         let driveValue = bu.getUint8(0) // Register 3: Horizontal MSB 8 Bit
         if (0x78 < driveValue && driveValue < 0x88) driveValue = 0x80 // off at the outputs
