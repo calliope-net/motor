@@ -21,6 +21,7 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
     }
     let n_i2cCheck: boolean = false // i2c-Check
     let n_i2cError: number = 0 // Fehlercode vom letzten WriteBuffer (0 ist kein Fehler)
+    let n_ReceivedNumber: Buffer = Buffer.create(4)
 
     export enum eRegister {
         FID = 0x00, // Reports firmware version. This corresponds with the numbering within the gitub repository.
@@ -494,6 +495,31 @@ Code anhand der Python library und Datenblätter neu programmiert von Lutz Elßn
         }
     }
 
+
+    // ========== group="Fernsteuerung"
+
+    //% group="Fernsteuerung" advanced=true
+    //% block="setReceivedNumber UInt32LE %pNumber" weight=4
+    export function setReceivedNumber(pNumber: number) {
+        n_ReceivedNumber.setNumber(NumberFormat.UInt32LE, 0, pNumber)
+    }
+
+    export enum eOffset {
+        //% block="0"
+        z0 = 0,
+        //% block="1"
+        z1 = 1,
+        //% block="2"
+        z2 = 2,
+        //% block="3"
+        z3 = 3
+    }
+
+    //% group="Fernsteuerung" advanced=true
+    //% block="getReceivedNumber %pNumberFormat %pOffset" weight=2
+    export function getReceivedNumber(pNumberFormat: NumberFormat, pOffset: eOffset) {
+        return n_ReceivedNumber.getNumber(pNumberFormat, pOffset)
+    }
 
 
 
